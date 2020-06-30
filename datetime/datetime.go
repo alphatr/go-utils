@@ -17,6 +17,8 @@ type DateTime struct {
 	Format  string
 }
 
+var timezoneCache = map[string]*time.Location{}
+
 // 默认支持的显示类型
 const (
 	SecondsISO8601 display = iota
@@ -50,6 +52,23 @@ func (ins *DateTime) SetFormat(format string) *DateTime {
 	return ins
 }
 
+// SetTimezone 设置时区
+func (ins *DateTime) SetTimezone(name string) *DateTime {
+	if zone, ok := timezoneCache[name]; ok {
+		ins.Time = ins.Time.In(zone)
+		return ins
+	}
+
+	zone, err := time.LoadLocation(name)
+	if err != nil {
+		return ins
+	}
+
+	timezoneCache[name] = zone
+	ins.Time = ins.Time.In(zone)
+	return ins
+}
+
 // UnmarshalJSON 转换 JSON
 func (ins *DateTime) UnmarshalJSON(input []byte) error {
 	var timestamp float64
@@ -57,7 +76,7 @@ func (ins *DateTime) UnmarshalJSON(input []byte) error {
 		sec := math.Floor(timestamp)
 		nsec := int64(math.Floor((timestamp - sec) * 1000000000))
 		ins.Display = SecondsISO8601
-		ins.Time = time.Unix(int64(sec), nsec)
+		ins.Time = time.Unix(int64(sec), nsec).Local()
 		return nil
 	}
 
@@ -67,7 +86,7 @@ func (ins *DateTime) UnmarshalJSON(input []byte) error {
 	}
 
 	ins.Display = SecondsISO8601
-	ins.Time = timeIns
+	ins.Time = timeIns.Local()
 	return nil
 }
 
@@ -93,7 +112,8 @@ func (ins DateTime) MarshalJSON() ([]byte, error) {
 
 // Scan database/sql Scan 接口实现
 func (ins *DateTime) Scan(value interface{}) error {
-	ins.Time = value.(time.Time)
+	timeValue := value.(time.Time)
+	ins.Time = timeValue.Local()
 	ins.Display = SecondsISO8601
 	return nil
 }
