@@ -39,6 +39,21 @@ func Now() *DateTime {
 	return &DateTime{Time: time.Now(), Display: SecondsISO8601}
 }
 
+// Parse 解析时间字符串
+func Parse(value string, formatters ...string) (*DateTime, error) {
+	formatter := time.RFC3339
+	if len(formatters) == 1 {
+		formatter = formatters[0]
+	}
+
+	res, err := time.Parse(formatter, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return New(res), nil
+}
+
 // SetDisplay 设置输出类型
 func (ins *DateTime) SetDisplay(option display) *DateTime {
 	ins.Display = option
