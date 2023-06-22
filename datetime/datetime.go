@@ -54,6 +54,30 @@ func Parse(value string, formatters ...string) (*DateTime, error) {
 	return New(res), nil
 }
 
+// Parse 解析时间字符串
+func ParseInTimezone(value string, timezone string, formatters ...string) (*DateTime, error) {
+	formatter := time.RFC3339
+	if len(formatters) == 1 {
+		formatter = formatters[0]
+	}
+
+	if timezone == "" {
+		timezone = "Local"
+	}
+
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := time.ParseInLocation(formatter, value, loc)
+	if err != nil {
+		return nil, err
+	}
+
+	return New(res), nil
+}
+
 // SetDisplay 设置输出类型
 func (ins *DateTime) SetDisplay(option display) *DateTime {
 	ins.Display = option
