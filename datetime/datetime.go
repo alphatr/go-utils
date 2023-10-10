@@ -3,7 +3,9 @@ package datetime
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -160,4 +162,45 @@ func (ins *DateTime) Scan(value interface{}) error {
 // Value database/sql Value 接口实现
 func (ins DateTime) Value() (driver.Value, error) {
 	return ins.Time, nil
+}
+
+func (ins *DateTime) UnmarshalText(input []byte) error {
+	timestamp, err := strconv.ParseFloat(string(input), 64)
+	if err == nil {
+		sec := math.Floor(timestamp)
+		nsec := int64(math.Floor((timestamp - sec) * 1000000000))
+		ins.Display = SecondsISO8601
+		ins.Time = time.Unix(int64(sec), nsec).Local()
+		return nil
+	}
+
+	content, _ := json.Marshal(string(input))
+	var timeIns time.Time
+	if err := json.Unmarshal(content, &timeIns); err != nil {
+		return err
+	}
+
+	ins.Display = SecondsISO8601
+	ins.Time = timeIns.Local()
+	return nil
+}
+
+func (ins DateTime) MarshalText() ([]byte, error) {
+	fmt.Printf("display: %d\n\n", ins.Display)
+	if ins.Display == UnixTimestamp {
+		return []byte(fmt.Sprintf("%d", ins.Unix())), nil
+	}
+
+	if ins.Display == MillisecondsTimestamp {
+		return []byte(fmt.Sprintf("%d", ins.UnixNano()/1000000)), nil
+	}
+
+	formatMap := map[display]string{
+		SecondsISO8601:      time.RFC3339,
+		MillisecondsISO8601: "2006-01-02T15:04:05.999Z07:00",
+		ISO8601:             time.RFC3339Nano,
+		Custom:              ins.Format,
+	}
+
+	return []byte(ins.Time.Format(formatMap[ins.Display])), nil
 }
