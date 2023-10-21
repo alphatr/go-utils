@@ -186,7 +186,6 @@ func (ins *DateTime) UnmarshalText(input []byte) error {
 }
 
 func (ins DateTime) MarshalText() ([]byte, error) {
-	fmt.Printf("display: %d\n\n", ins.Display)
 	if ins.Display == UnixTimestamp {
 		return []byte(fmt.Sprintf("%d", ins.Unix())), nil
 	}
